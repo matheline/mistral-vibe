@@ -16,6 +16,14 @@ Cette partie décrit le moteur qui fait tourner tous les outils ; les trois sect
 
 ## MCP (Aroua)
 
+Le **Model Context Protocol (MCP)** permet à Mistral Vibe de communiquer avec des serveurs externes qui exposent des outils utilisables par l'agent. Contrairement aux Builtins, qui sont intégrés directement dans Vibe, les outils MCP sont fournis par des serveurs indépendants.
+
+L'implémentation repose principalement sur le `MCPRegistry`, qui découvre les serveurs et leurs outils, puis sur des proxies qui rendent ces outils accessibles à l'agent. Deux modes de communication sont pris en charge : HTTP pour communiquer avec des serveurs distants et STDIO pour communiquer avec des processus locaux. Le système comprend également un cache pour éviter les découvertes répétées, un pool pour gérer les connexions STDIO et des mécanismes d'autorisation.
+
+Ainsi, MCP étend les capacités de l'agent en lui permettant d'utiliser des fonctionnalités externes tout en s'intégrant au système général des outils de Mistral Vibe.
+
+**Documentation détaillée :** [`mcp/README.md`](mcp/README.md) et [`mcp/Etude_Implementation_MCP.md`](mcp/Etude_Implementation_MCP.md).
+
 ## Builtins (Eve)
 
 > Doc complète : [`builtins/builtin-tools.md`](builtins/builtin-tools.md)
