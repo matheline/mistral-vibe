@@ -31,12 +31,6 @@
                     <a href="#flow" class="nav-link">Flux d'exécution</a>
                 </div>
                 <div class="nav-section">
-                    <span class="nav-section-title">Sous-répertoires</span>
-                    <a href="#builtins" class="nav-link">🛠️ builtins/ <span class="badge">à venir</span></a>
-                    <a href="#connectors" class="nav-link">🔌 connectors/ <span class="badge">à venir</span></a>
-                    <a href="#mcp" class="nav-link">🌐 mcp/ <span class="badge">à venir</span></a>
-                </div>
-                <div class="nav-section">
                     <span class="nav-section-title">Qualité</span>
                     <a href="#tests" class="nav-link">🧪 Tests</a>
                     <a href="#quality" class="nav-link">✅ Qualité du code</a>
@@ -334,33 +328,6 @@ flowchart TD
     I --> J[UI]
 </pre>
                 </div>
-            </section>
-
-            <!-- Subdirectories -->
-            <section id="builtins" class="section">
-                <h2>🛠️ builtins/ <span class="badge">à venir</span></h2>
-                <p><strong>15 outils principaux</strong> (noms snake_case dérivés du nom de classe) :</p>
-                <div class="tree">
-                    <pre><code>read_file, write_file, edit          # fichiers
-grep                                  # recherche
-bash, experimental_bash, git_bash, windows_shell  # shell (+ bash_output, bash_stdin, bash_sessions, bash_log_file)
-web_search, web_fetch                 # web
-todo, task, skill                     # gestion
-ask_user_question, exit_plan_mode     # interaction</code></pre>
-                </div>
-                <div class="coming-soon">📄 Doc détaillée à venir dans <code>builtins.md</code></div>
-            </section>
-
-            <section id="connectors" class="section">
-                <h2>🔌 connectors/ <span class="badge">à venir</span></h2>
-                <p>3 fichiers : <code>connector_registry.py</code> (registre des connecteurs externes : Google Drive, Notion, GitHub...), <code>counts.py</code>.</p>
-                <div class="coming-soon">📄 Doc à venir dans <code>connectors.md</code></div>
-            </section>
-
-            <section id="mcp" class="section">
-                <h2>🌐 mcp/ <span class="badge">à venir</span></h2>
-                <p>7 fichiers : <code>registry.py</code>, <code>pool.py</code>, <code>tools.py</code>, <code>authorization.py</code>, <code>management.py</code>, <code>descriptor_cache.py</code> — serveurs MCP (Model Context Protocol).</p>
-                <div class="coming-soon">📄 Doc à venir dans <code>mcp.md</code></div>
             </section>
 
             <!-- Tests -->
