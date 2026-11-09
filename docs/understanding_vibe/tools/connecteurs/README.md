@@ -1,57 +1,131 @@
-Documentation : Connectors
+Les Connectors de Mistral Vibe
 
-Documentation technique du sous-système Connectors de Mistral Vibe : les outils distants fournis par l'API Mistral (/v1/connectors-gateway/) et exposés à Vibe comme des outils natifs.
+Chaque partie comporte 2 à 3 phrases simples, puis le schéma ou le tableau à afficher.
 
-Elle fait partie de la documentation du groupe Outils (docs/understanding_vibe/tools/), aux côtés des Builtins, de MCP et de la documentation générale.
+1. C'est quoi ?
 
-Contenu
-Fichier	Description
-connectors.md	Étude détaillée : architecture, fonctionnement, cache, authentification, erreurs, tests, avantages, limites, recommandations
-README.md	Ce fichier : présentation et guide de lecture
-À qui s'adresse cette documentation
-Développeurs de Vibe qui doivent comprendre, maintenir ou faire évoluer le sous-système Connectors.
-Relecteurs qui veulent évaluer la robustesse, la couverture de tests et les limites connues.
-Contributeurs qui comparent Builtins, MCP et Connectors.
-Guide de lecture
-Vous voulez...	Lisez la section de connectors.md
-Situer les Connectors par rapport aux Builtins et à MCP	1. Positionnement
-Comprendre la hiérarchie de classes et les composants	2. Architecture
-Suivre la découverte et l'exécution d'un outil	3. Fonctionnement
-Comprendre le cache (niveaux, TTL, contenu, résilience)	4. Cache en détail
-Vérifier le traitement de la clé d'API	5. Authentification et sécurité
-Connaître les messages d'erreur	6. Gestion des erreurs
-Évaluer la couverture de tests et ses lacunes	7. Tests en détail
-Voir les points forts du design	8. Avantages
-Voir les risques et défauts connus	9. Limites et risques
-Savoir quoi améliorer en priorité	10. Recommandations
-En bref
-Les Connectors sont des outils MCP spécialisés : ConnectorProxyTool hérite de MCPTool et réutilise call_tool_http.
-La découverte passe par /v1/connectors/bootstrap, avec un cache à deux niveaux (fichier 10 min, mémoire de session).
-L'authentification est un Bearer MISTRAL_API_KEY ; la clé n'est jamais écrite dans le cache fichier.
-Le point faible principal est la dépendance à l'API Mistral : sans bootstrap valide, aucun outil connector n'est disponible.
-Conventions du document
-Références de code : fichiers et noms de fonctions, sans numéros de ligne, qui évoluent trop vite.
-[non vérifié] : point déduit ou non confirmé par lecture directe du code ou des tests. À valider avant de s'y fier.
-Gravité des limites : Faible, Moyenne, Élevée. Ce sont des appréciations de relecture, pas des mesures.
-Chiffres de performance : volontairement absents, aucun benchmark n'existe dans le dépôt.
-Périmètre et limites de cette documentation
-Elle décrit l'état du code au moment de sa rédaction (commit de référence : à renseigner).
-Les fichiers de tests autres que tests/tools/test_connectors.py sont décrits d'après leur nom et leur rôle, pas d'après une relecture complète.
-Les comportements dépendant du serveur Mistral (support d'ETag, évolutions de l'API) ne sont pas documentés ici.
-Maintenance
+Les Connectors permettent à Vibe d'utiliser des outils hébergés par l'API Mistral, comme la recherche web. Pour l'agent, ils s'utilisent comme des outils normaux. Ce sont en fait des outils MCP spécialisés.
 
-À mettre à jour lorsque l'un de ces éléments change :
+Outils MCP spécialisés
+Passage par /v1/connectors-gateway/
+Aucune différence pour l'agent avec un autre outil
+2. Positionnement : 3 familles d'outils
 
-_BOOTSTRAP_CACHE_TTL_SECONDS ou le format du cache fichier
-la hiérarchie MCPTool / ConnectorProxyTool
-l'URL de la gateway ou le mode d'authentification
-la suite de tests (nouveaux fichiers ou nouvelles lacunes couvertes)
+Vibe a trois familles d'outils : les Builtins en local, les outils MCP sur des serveurs externes, et les Connectors sur l'API Mistral. Tous utilisent la même interface et sont gérés par le ToolManager.
 
-Après une correction d'une limite listée en section 9, mettre à jour le tableau récapitulatif et retirer la recommandation correspondante.
+AgentLoop
+ToolManager
+Builtins : local
+MCP : serveurs externes
+Connectors : API Mistral
+	Builtins	MCP	Connectors
+Origine	Code Python local	Serveurs MCP externes	API Mistral
+Exécution	Locale	Distante, configurable	Distante, URL et auth fixes
+Découverte	Statique	list_tools_http / stdio	/v1/connectors/bootstrap
+Cache	Aucun	24 h	10 min + mémoire
+Authentification	Aucune	Configurable	Bearer MISTRAL_API_KEY
+Réseau obligatoire	Non	Selon le serveur	Oui
+3. Architecture
 
-Documentation liée
-../tools.md : vue d'ensemble du groupe Outils
-../mcp/ : documentation MCP
-../builtins/ : documentation des outils Builtins
-../general/ : documentation générale
-docs/adr/0004-typed-permissioned-tools.md : contexte de conception des outils typés et permissionnés
+Les Connectors héritent de MCP : ConnectorProxyTool hérite de MCPTool. Un proxy est un intermédiaire qui ressemble à un outil local mais envoie l'appel au service distant. Comme ils réutilisent le code d'appel de MCP, ils profitent de ses corrections.
+
+BaseTool
+  └── MCPTool
+        └── ConnectorProxyTool
+Composant	Rôle
+ConnectorRegistry	Découvre les connectors, gère le cache et l'OAuth
+ConnectorProxyTool	Proxy généré pour chaque outil distant
+ToolManager	Enregistre et filtre tous les outils
+4. Fonctionnement
+
+Pour découvrir les outils, Vibe regarde d'abord le cache, puis appelle l'API si besoin, et crée un proxy par outil. Quand l'agent utilise un outil, le proxy envoie la requête à l'API Mistral avec la clé d'API et renvoie le résultat.
+
+Découverte
+
+get_tools_async()
+  ├─ cache mémoire rempli ? → retour immédiat
+  └─ sinon → _discover_all()
+       ├─ lit le cache fichier
+       ├─ sinon appelle /v1/connectors/bootstrap
+       ├─ déduplique les noms (wiki, wiki_2)
+       └─ crée un proxy par outil
+ToolManager.integrate_connectors_async() → enregistre les outils
+
+Exécution
+
+Agent → ToolManager.get("connector_web_search")
+      → invoke() : validation des arguments
+      → run() → call_tool_http(URL fixe + Bearer)
+      → API Mistral → résultat
+5. Le cache
+
+Pour éviter d'appeler l'API à chaque fois, la liste des outils est gardée en cache pendant 10 minutes, dans un fichier et en mémoire. Ces 10 minutes s'appellent le TTL : passé ce délai, on redemande à l'API. Le TTL est court car l'état d'un connector peut changer en cours de session.
+
+Niveau	Durée	Emplacement	Persistance
+Fichier	10 min (TTL)	$VIBE_HOME/connector_bootstrap_cache.json	Survit au redémarrage
+Mémoire	Durée du registry	ConnectorRegistry._cache	Perdu au redémarrage
+14h00  cache vide          → appel API   → stocké
+14h05  cache de 5 min      → valide      → réutilisé
+14h12  cache de 12 min     → périmé      → nouvel appel API
+
+Un nouvel appel API a lieu si : cache absent, expiré, illisible, invalide ou force_refresh.
+
+6. Authentification et sécurité
+
+L'authentification utilise toujours un jeton Bearer construit avec la clé d'API Mistral. Cette clé n'est jamais écrite dans le fichier de cache, et un test le vérifie. Elle reste seulement en mémoire.
+
+Opération	Mécanisme
+Exécution et bootstrap	Authorization: Bearer {MISTRAL_API_KEY}
+OAuth	get_auth_url() renvoie l'URL à ouvrir
+Endroit	Clé d'API présente ?
+Fichier de cache	Non
+Mémoire (proxies)	Oui
+Requêtes sortantes	Oui
+7. Gestion des erreurs
+
+Chaque erreur HTTP est traduite en un message clair qui dit quoi faire. Par exemple, pour une erreur 401, on vérifie la clé d'API, et pour une erreur serveur, on réessaie avec /reload.
+
+Erreur	Message	Action
+401 / 403	Échec d'authentification	Vérifier MISTRAL_API_KEY
+404	Connector introuvable	Vérifier son existence
+5xx	Problème serveur	Réessayer avec /reload
+Timeout	Service lent ou injoignable	Vérifier la connexion
+Connexion	Proxy injoignable	Vérifier le réseau
+8. Les tests
+
+Il y a cinq fichiers de tests, dont le principal est test_connectors.py. Il couvre bien la découverte, le cache, les erreurs et le filtrage. Il manque des tests de concurrence, de validation de schéma et de performance.
+
+Fichier	Niveau
+tests/tools/test_connectors.py	Intégration (cœur de la suite)
+tests/app_server/test_connector_catalog.py	Unitaire
+tests/cli/test_connector_auth_app.py	Intégration (OAuth)
+tests/acp/test_connectors.py	Contrat
+tests/agent_loop/e2e/test_e2e_connectors.py	End-to-end
+Bien couvert	Non couvert
+Découverte, cache, erreurs HTTP	Concurrence
+Exécution, filtrage	Validation de schéma
+Clé d'API absente du cache	TTL exact, payloads malformés, performance
+9. Avantages
+
+L'architecture est simple à étendre, et l'agent traite tous les outils de la même façon. Le cache réduit les appels, les erreurs sont claires et la clé d'API est protégée.
+
+Architecture modulaire : une sous-classe, un registry, une intégration
+Transparence pour l'agent : même interface pour tous les outils
+Cache à deux niveaux : moins d'appels, démarrage rapide
+Messages d'erreur exploitables
+Sécurité de la clé d'API dans le cache
+Réutilisation du code MCP (call_tool_http)
+Contrôle par configuration (désactivation fine)
+10. Limites
+
+La limite principale est la dépendance à l'API Mistral : si elle est en panne, plus aucun connector n'est disponible. Il n'y a pas non plus de métriques, ni de mode local pour développer.
+
+Limite	Gravité
+Dépendance à l'API Mistral, pas de repli sur un cache expiré	Élevée
+Aucune métrique d'observabilité	Moyenne à élevée
+Pas de mode local de développement	Moyenne
+Pas de validation de schéma	Moyenne
+Pas de revalidation conditionnelle (ETag)	Faible à moyenne
+Déduplication silencieuse des noms	Faible à moyenne
+TTL court : impact non mesuré	Faible à moyenne
+Clé d'API en mémoire dans les proxies	Faible
