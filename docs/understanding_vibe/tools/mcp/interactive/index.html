@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Présentation pédagogique de l'implémentation MCP dans Mistral Vibe.">
+<title>MCP dans Mistral Vibe — Comprendre simplement</title>
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f5f7fb;--surface:#fff;--surface2:#eef2f8;--text:#172033;--muted:#64708a;
+  --line:#dfe5ef;--accent:#6558e8;--accent2:#0e9b91;--glow:rgba(101,88,232,.12);
+  --shadow:0 18px 50px rgba(31,43,75,.08);
+}
+[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0b1020;--surface:#131b2e;--surface2:#1b2740;--text:#edf2ff;--muted:#a6b2ca;
+  --line:#2b3853;--accent:#a69bff;--accent2:#55d5c6;--glow:rgba(166,155,255,.15);
+  --shadow:0 18px 50px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;transition:background .25s,color .25s}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+button{font:inherit}
+.container{width:min(1120px,calc(100% - 40px));margin:auto}
+header{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+.nav{height:72px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.brand{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:-.03em}
+.logo{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;color:white;font-weight:900}
+.navlinks{display:flex;gap:22px;font-size:14px;color:var(--muted)}
+.navlinks a{color:inherit}
+.theme-btn{border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:999px;padding:9px 14px;cursor:pointer;font-weight:650}
+.hero{padding:76px 0 54px;position:relative;overflow:hidden}
+.hero:before{content:"";position:absolute;width:480px;height:480px;border-radius:50%;background:var(--glow);filter:blur(3px);top:-210px;right:-110px;pointer-events:none}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);padding:6px 12px;border-radius:999px;color:var(--muted);font-size:13px;font-weight:700}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--accent2)}
+h1{font-size:clamp(42px,7vw,72px);line-height:1.04;letter-spacing:-.055em;margin:22px 0 18px;max-width:820px}
+.gradient{background:linear-gradient(100deg,var(--accent),var(--accent2));background-clip:text;color:transparent}
+.lead{font-size:19px;color:var(--muted);max-width:760px;margin:0}
+.hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:12px;font-weight:750;border:1px solid var(--line);background:var(--surface);color:var(--text)}
+.btn.primary{background:var(--accent);color:white;border-color:var(--accent)}
+section{padding:44px 0;scroll-margin-top:90px}
+.section-head{margin-bottom:24px}
+.kicker{font-size:12px;text-transform:uppercase;letter-spacing:.14em;color:var(--accent);font-weight:850}
+h2{font-size:clamp(27px,4vw,38px);letter-spacing:-.04em;line-height:1.15;margin:8px 0}
+.section-desc{color:var(--muted);max-width:720px;margin:0}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:var(--shadow)}
+.card-icon{width:42px;height:42px;border-radius:13px;background:var(--glow);display:grid;place-items:center;font-size:20px;margin-bottom:15px}
+.card h3{margin:0 0 8px;font-size:18px}
+.card p{margin:0;color:var(--muted);font-size:14px}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;counter-reset:step}
+.step{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px}
+.step:before{counter-increment:step;content:"0" counter(step);display:inline-grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--glow);color:var(--accent);font-weight:850;margin-bottom:14px}
+.step h3{font-size:16px;margin:0 0 6px}.step p{font-size:14px;color:var(--muted);margin:0}
+.diagram{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:26px;box-shadow:var(--shadow)}
+.diagram-top{max-width:440px;margin:0 auto 18px;text-align:center;padding:17px;border-radius:14px;background:var(--surface2);border:1px solid var(--line);font-weight:800}
+.arrow{text-align:center;color:var(--accent);font-size:24px;line-height:1.4}
+.diagram-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.diagram-item{text-align:center;border:1px solid var(--line);border-radius:14px;padding:18px 10px;background:var(--surface)}
+.diagram-item strong{display:block;margin:5px 0}.diagram-item span{font-size:13px;color:var(--muted)}
+.result{max-width:440px;margin:18px auto 0;text-align:center;padding:15px;border:1px dashed var(--accent);border-radius:14px;color:var(--muted)}
+.component-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.component{padding:18px;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.component code{font-size:14px;color:var(--accent);font-weight:800}
+.component p{margin:7px 0 0;color:var(--muted);font-size:14px}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.mode{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:24px}
+.mode-label{display:inline-block;padding:5px 10px;border-radius:8px;background:var(--glow);color:var(--accent);font-size:12px;font-weight:850;letter-spacing:.06em}
+.mode h3{font-size:22px;margin:12px 0 6px}.mode p{color:var(--muted);margin:0}
+.note{border-left:4px solid var(--accent2);background:var(--surface2);padding:17px 20px;border-radius:0 14px 14px 0;color:var(--muted)}
+footer{border-top:1px solid var(--line);padding:28px 0 42px;color:var(--muted);font-size:13px}
+footer strong{color:var(--text)}
+@media(max-width:800px){.navlinks{display:none}.grid,.component-grid{grid-template-columns:repeat(2,1fr)}.steps{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:540px){.container{width:min(100% - 28px,1120px)}.hero{padding:54px 0 36px}.grid,.component-grid,.steps,.modes,.diagram-grid{grid-template-columns:1fr}.card,.mode{padding:19px}.nav{height:64px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="container nav">
+    <div class="brand"><span class="logo">M</span><span>MCP <span style="color:var(--muted);font-weight:600">/ Mistral Vibe</span></span></div>
+    <nav class="navlinks" aria-label="Navigation principale">
+      <a href="#intro">Introduction</a><a href="#fonctionnement">Fonctionnement</a><a href="#architecture">Architecture</a><a href="#communication">Communication</a>
+    </nav>
+    <button class="theme-btn" id="themeToggle" type="button" aria-label="Activer le mode nuit">☾ Mode nuit</button>
+  </div>
+</header>
+<main>
+  <section class="hero" id="intro">
+    <div class="container">
+      <span class="eyebrow"><span class="dot"></span> Comprendre simplement</span>
+      <h1>Connecter Vibe au monde extérieur avec <span class="gradient">MCP</span>.</h1>
+      <p class="lead">MCP (Model Context Protocol) permet à Mistral Vibe de découvrir et d'utiliser des outils proposés par des serveurs externes, sans intégrer directement chaque fonctionnalité dans le projet.</p>
+      <div class="hero-actions">
+        <a class="btn primary" href="#fonctionnement">Découvrir le fonctionnement ↓</a>
+        <a class="btn" href="#architecture">Voir les composants</a>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <div class="section-head"><div class="kicker">01 · Le rôle de MCP</div><h2>Pourquoi en a-t-on besoin ?</h2><p class="section-desc">MCP étend les capacités de l'agent. Au lieu de développer chaque outil dans Vibe, on peut utiliser des outils mis à disposition par des serveurs MCP.</p></div>
+      <div class="grid">
+        <article class="card"><div class="card-icon">🧩</div><h3>Étendre les capacités</h3><p>L'agent peut accéder à des fonctionnalités qui ne sont pas intégrées directement dans Mistral Vibe.</p></article>
+        <article class="card"><div class="card-icon">🔎</div><h3>Découvrir des outils</h3><p>Vibe interroge les serveurs MCP configurés pour connaître les outils qu'ils proposent.</p></article>
+        <article class="card"><div class="card-icon">🔁</div><h3>Utiliser une interface commune</h3><p>Les outils découverts sont présentés à l'agent sous forme de proxies qu'il peut appeler.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section id="fonctionnement">
+    <div class="container">
+      <div class="section-head"><div class="kicker">02 · Le parcours d'un outil</div><h2>Comment ça fonctionne ?</h2><p class="section-desc">Le parcours simplifié d'un appel MCP dans Mistral Vibe.</p></div>
+      <div class="steps">
+        <article class="step"><h3>Configurer</h3><p>L'utilisateur configure un ou plusieurs serveurs MCP.</p></article>
+        <article class="step"><h3>Découvrir</h3><p>Le registre MCP recherche les outils disponibles sur ces serveurs.</p></article>
+        <article class="step"><h3>Appeler</h3><p>L'agent choisit un outil et l'appelle à travers le proxy créé par Vibe.</p></article>
+        <article class="step"><h3>Recevoir</h3><p>Le serveur exécute la demande et le résultat revient à l'agent.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <div class="section-head"><div class="kicker">03 · Vue d'ensemble</div><h2>Où se place MCP dans Vibe ?</h2><p class="section-desc">MCP est une des sources d'outils disponibles pour l'agent, à côté des outils intégrés et des Connectors.</p></div>
+      <div class="diagram">
+        <div class="diagram-top">Mistral Vibe · Agent</div>
+        <div class="arrow">↓</div>
+        <div class="diagram-grid">
+          <div class="diagram-item"><div style="font-size:25px">🛠️</div><strong>Builtins</strong><span>Outils intégrés à Vibe</span></div>
+          <div class="diagram-item"><div style="font-size:25px">🔌</div><strong>Connectors</strong><span>Services accessibles via Connectors</span></div>
+          <div class="diagram-item"><div style="font-size:25px">🌐</div><strong>MCP</strong><span>Outils fournis par des serveurs MCP</span></div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="result"><strong>Résultat de l'outil</strong><br>Le résultat est transmis à l'agent qui peut poursuivre sa tâche.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="architecture">
+    <div class="container">
+      <div class="section-head"><div class="kicker">04 · Dans le code</div><h2>Les composants principaux</h2><p class="section-desc">Chaque composant a un rôle précis dans la gestion des serveurs, des outils et des connexions MCP.</p></div>
+      <div class="component-grid">
+        <article class="component"><code>Registry</code><p>Découvre les serveurs MCP et les outils qu'ils mettent à disposition.</p></article>
+        <article class="component"><code>Tools</code><p>Construit les proxies et gère les appels aux outils MCP.</p></article>
+        <article class="component"><code>Pool</code><p>Gère et réutilise les connexions STDIO.</p></article>
+        <article class="component"><code>Descriptor cache</code><p>Conserve les descriptions des outils pour éviter des découvertes répétées.</p></article>
+        <article class="component"><code>Management</code><p>Gère l'ajout et la suppression des serveurs MCP.</p></article>
+        <article class="component"><code>Authorization</code><p>Définit les mécanismes liés à l'autorisation et à l'authentification.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section id="communication">
+    <div class="container">
+      <div class="section-head"><div class="kicker">05 · Connexion</div><h2>Deux modes de communication</h2><p class="section-desc">L'implémentation étudiée dans Mistral Vibe prend en charge HTTP et STDIO.</p></div>
+      <div class="modes">
+        <article class="mode"><span class="mode-label">SERVEUR DISTANT</span><h3>HTTP</h3><p>Permet à Vibe de communiquer avec un serveur MCP distant via le réseau.</p></article>
+        <article class="mode"><span class="mode-label">PROCESSUS LOCAL</span><h3>STDIO</h3><p>Permet à Vibe de communiquer avec un processus local à travers ses entrées et sorties standard.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <div class="note"><strong>À retenir :</strong> MCP est un moyen standardisé d'étendre les capacités de Mistral Vibe. Le registre découvre les outils, les proxies permettent à l'agent de les appeler, et les composants de connexion gèrent les échanges avec les serveurs.</div>
+    </div>
+  </section>
+</main>
+<footer>
+  <div class="container"><strong>MCP — Model Context Protocol</strong><br>Présentation pédagogique · Mistral Vibe<br><span>Pour les détails techniques, consulter <code>Etude_Implementation_MCP.md</code>.</span></div>
+</footer>
+<script>
+const root=document.documentElement;
+const toggle=document.getElementById('themeToggle');
+function setTheme(theme){
+  root.setAttribute('data-theme',theme);
+  const dark=theme==='dark';
+  toggle.textContent=dark?'☀ Mode jour':'☾ Mode nuit';
+  toggle.setAttribute('aria-label',dark?'Activer le mode jour':'Activer le mode nuit');
+}
+const saved=localStorage.getItem('mcp-theme');
+setTheme(saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));
+toggle.addEventListener('click',()=>{
+  const next=root.getAttribute('data-theme')==='dark'?'light':'dark';
+  setTheme(next);localStorage.setItem('mcp-theme',next);
+});
+</script>
+</body>
+</html>
